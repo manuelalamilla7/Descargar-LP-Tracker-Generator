@@ -20,6 +20,18 @@
   var resetButton = document.getElementById("reset-button");
   var toast = document.getElementById("toast");
 
+  var helperForm = document.getElementById("form-helper");
+  var helperFormId = document.getElementById("helper-form-id");
+  var rawFormHtml = document.getElementById("raw-form-html");
+  var helperEmpty = document.getElementById("helper-empty");
+  var helperOutput = document.getElementById("helper-output");
+  var helperStatus = document.getElementById("helper-status");
+  var helperSummary = document.getElementById("helper-summary");
+  var preparedFormCode = document.getElementById("prepared-form-code");
+  var copyPreparedFormButton = document.getElementById("copy-prepared-form");
+  var loadFormExampleButton = document.getElementById("load-form-example");
+  var clearFormHelperButton = document.getElementById("clear-form-helper");
+
   var source = "";
   var fileName = "lp-tracker.js";
   var toastTimer = null;
@@ -33,6 +45,12 @@
   });
   downloadButton.addEventListener("click", downloadJs);
   resetButton.addEventListener("click", reset);
+  helperForm.addEventListener("submit", prepareFormHtml);
+  copyPreparedFormButton.addEventListener("click", function () {
+    copyText(preparedFormCode.textContent, "Formulario copiado");
+  });
+  loadFormExampleButton.addEventListener("click", loadFormExample);
+  clearFormHelperButton.addEventListener("click", clearFormHelper);
 
   document.querySelectorAll("[data-copy-target]").forEach(function (button) {
     button.addEventListener("click", function () {
@@ -349,6 +367,217 @@
     var classMatch = selector.match(/^form\.([a-zA-Z0-9_-]+)$/);
     var className = classMatch ? classMatch[1] : "lead-form";
     return '<form class="' + className + '" data-lp-form-id="hero">';
+  }
+
+
+  function prepareFormHtml(event) {
+    event.preventDefault();
+
+    var html = String(rawFormHtml.value || "").trim();
+    if (!html) {
+      alert("Pega el HTML de al menos un formulario.");
+      return;
+    }
+
+    var parser = new DOMParser();
+    var parsed = parser.parseFromString("<!doctype html><html><body>" + html + "</body></html>", "text/html");
+    var forms = Array.prototype.slice.call(parsed.body.querySelectorAll("form"));
+
+    if (!forms.length) {
+      alert("No encontramos una etiqueta <form> en el código pegado.");
+      return;
+    }
+
+    var baseId = slugify(helperFormId.value || "formulario") || "formulario";
+    var namesAdded = 0;
+    var formsPrepared = 0;
+
+    forms.forEach(function (targetForm, formIndex) {
+      formsPrepared += 1;
+      targetForm.classList.add("lead-form");
+
+      if (!targetForm.dataset.lpFormId) {
+        targetForm.dataset.lpFormId = forms.length === 1
+          ? baseId
+          : baseId + "-" + (formIndex + 1);
+      }
+
+      var usedNames = Object.create(null);
+      targetForm.querySelectorAll("[name]").forEach(function (control) {
+        var existingName = cleanBuilderValue(control.getAttribute("name"));
+        if (existingName) usedNames[existingName] = true;
+      });
+
+      var controls = Array.prototype.slice.call(
+        targetForm.querySelectorAll("input, select, textarea")
+      );
+
+      controls.forEach(function (control, controlIndex) {
+        var type = String(control.getAttribute("type") || "").toLowerCase();
+        if (type === "submit" || type === "button" || type === "reset" || type === "image") return;
+        if (cleanBuilderValue(control.getAttribute("name"))) return;
+
+        var candidate = inferFieldName(control, targetForm, controlIndex + 1);
+        var uniqueName = makeUniqueName(candidate, usedNames);
+        control.setAttribute("name", uniqueName);
+        usedNames[uniqueName] = true;
+        namesAdded += 1;
+
+        if ((type === "checkbox" || type === "radio") && !control.hasAttribute("value")) {
+          control.setAttribute("value", type === "checkbox" ? "aceptado" : "seleccionado");
+        }
+      });
+    });
+
+    var prepared = formatHtml(parsed.body.innerHTML.trim());
+    preparedFormCode.textContent = prepared;
+    helperSummary.textContent = formsPrepared + (formsPrepared === 1 ? " formulario preparado · " : " formularios preparados · ") + namesAdded + (namesAdded === 1 ? " name agregado" : " names agregados");
+    helperEmpty.hidden = true;
+    helperOutput.hidden = false;
+    helperStatus.textContent = "Formulario listo";
+    helperStatus.classList.add("ready");
+    showToast("Formulario preparado");
+  }
+
+  function inferFieldName(control, targetForm, index) {
+    var sources = [];
+    var id = cleanBuilderValue(control.id);
+
+    if (id) {
+      sources.push(stripCommonPrefix(id));
+    }
+
+    var labelText = findLabelText(control, targetForm);
+    if (labelText) sources.push(labelText);
+
+    var placeholder = cleanBuilderValue(control.getAttribute("placeholder"));
+    if (placeholder) sources.push(placeholder);
+
+    var type = cleanBuilderValue(control.getAttribute("type"));
+    if (type) sources.push(type);
+
+    sources.push(control.tagName.toLowerCase() + "_" + index);
+
+    for (var i = 0; i < sources.length; i += 1) {
+      var normalized = normalizeFieldAlias(sources[i]);
+      if (normalized) return normalized;
+    }
+
+    return "campo_" + index;
+  }
+
+  function findLabelText(control, targetForm) {
+    var id = cleanBuilderValue(control.id);
+    if (id) {
+      var labels = Array.prototype.slice.call(targetForm.querySelectorAll("label[for]"));
+      for (var i = 0; i < labels.length; i += 1) {
+        if (labels[i].getAttribute("for") === id) {
+          return cleanBuilderValue(labels[i].textContent);
+        }
+      }
+    }
+
+    var parentLabel = control.closest ? control.closest("label") : null;
+    return parentLabel ? cleanBuilderValue(parentLabel.textContent) : "";
+  }
+
+  function stripCommonPrefix(value) {
+    var parts = String(value).split(/[-_]+/);
+    var first = String(parts[0] || "").toLowerCase();
+    var prefixes = ["f", "c", "h", "field", "form", "lead", "input"];
+
+    if (parts.length > 1 && (first.length <= 2 || prefixes.indexOf(first) !== -1)) {
+      parts.shift();
+    }
+
+    return parts.join("_");
+  }
+
+  function normalizeFieldAlias(value) {
+    var slug = slugify(value);
+    if (!slug) return "";
+
+    if (/apellido|last_name|lastname/.test(slug)) return "apellido";
+    if (/nombre|full_name|fullname|(^|_)name($|_)/.test(slug)) return "nombre";
+    if (/whatsapp|telefono|telephone|phone|(^|_)tel($|_)|(^|_)wa($|_)/.test(slug)) return "whatsapp";
+    if (/correo|email|(^|_)mail($|_)/.test(slug)) return "correo";
+    if (/interes|interest|que_buscas|buscas|(^|_)int($|_)/.test(slug)) return "interes";
+    if (/mensaje|message|comentario|comments|(^|_)msg($|_)/.test(slug)) return "mensaje";
+    if (/privacidad|privacy|consentimiento|consent|acepto/.test(slug)) return "aviso_privacidad";
+
+    return slug.slice(0, 64);
+  }
+
+  function slugify(value) {
+    return String(value || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+  }
+
+  function makeUniqueName(base, usedNames) {
+    var name = base || "campo";
+    var counter = 2;
+
+    while (usedNames[name]) {
+      name = base + "_" + counter;
+      counter += 1;
+    }
+
+    return name;
+  }
+
+  function formatHtml(html) {
+    var normalized = String(html || "")
+      .replace(/>\s*</g, ">\n<")
+      .trim();
+
+    var voidTags = /^(area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/i;
+    var lines = normalized.split("\n");
+    var depth = 0;
+    var output = [];
+
+    lines.forEach(function (rawLine) {
+      var line = rawLine.trim();
+      if (!line) return;
+
+      if (/^<\//.test(line)) depth = Math.max(0, depth - 1);
+      output.push(new Array(depth + 1).join("  ") + line);
+
+      var openMatch = line.match(/^<([a-z0-9-]+)(\s|>|\/)/i);
+      var closesOnSameLine = /^<([a-z0-9-]+)[^>]*>.*<\/\1>$/i.test(line);
+      var selfClosing = /\/\s*>$/.test(line);
+
+      if (openMatch && !voidTags.test(openMatch[1]) && !selfClosing && !closesOnSameLine && !/^<!/.test(line) && !/^<\//.test(line)) {
+        depth += 1;
+      }
+    });
+
+    return output.join("\n");
+  }
+
+  function cleanBuilderValue(value) {
+    return value === null || value === undefined ? "" : String(value).trim();
+  }
+
+  function loadFormExample() {
+    helperFormId.value = "hero";
+    rawFormHtml.value = '<form id="leadForm" novalidate>\n  <label for="f-name">Nombre</label>\n  <input id="f-name" type="text" required>\n\n  <label for="f-wa">WhatsApp</label>\n  <input id="f-wa" type="tel" required>\n\n  <label for="f-mail">Correo</label>\n  <input id="f-mail" type="email">\n\n  <button type="submit">Enviar</button>\n</form>';
+    showToast("Ejemplo cargado");
+  }
+
+  function clearFormHelper() {
+    helperForm.reset();
+    helperFormId.value = "hero";
+    preparedFormCode.textContent = "";
+    helperSummary.textContent = "";
+    helperEmpty.hidden = false;
+    helperOutput.hidden = true;
+    helperStatus.textContent = "Sin preparar";
+    helperStatus.classList.remove("ready");
+    showToast("Preparador limpio");
   }
 
   function normalizeEventName(value) {

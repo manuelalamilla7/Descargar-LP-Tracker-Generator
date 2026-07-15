@@ -13,7 +13,7 @@
       <span class="brand-mark">LP</span>
       <span>Tracker Generator</span>
     </a>
-    <a class="topbar-link" href="#instalacion">Cómo instalar</a>
+    <nav class="topbar-nav"><a class="topbar-link" href="#preparar-formulario">Preparar form</a><a class="topbar-link" href="#instalacion">Cómo instalar</a></nav>
   </header>
 
   <main id="inicio">
@@ -132,9 +132,73 @@
       </section>
     </section>
 
+
+
+    <section id="preparar-formulario" class="form-helper-section shell">
+      <div class="section-heading helper-heading">
+        <div>
+          <p class="step">03 · Prepara tu formulario</p>
+          <h2>Agrega automáticamente los atributos necesarios</h2>
+          <p class="section-copy">
+            Pega el HTML de uno o varios formularios. La herramienta agregará la clase <code>lead-form</code>,
+            <code>data-lp-form-id</code> y un atributo <code>name</code> a los campos que no lo tengan.
+          </p>
+        </div>
+        <span class="helper-warning">Revisa los nombres antes de publicar</span>
+      </div>
+
+      <div class="form-helper-grid">
+        <form id="form-helper" class="card helper-card">
+          <label class="field short-field">
+            <span>ID de origen</span>
+            <input id="helper-form-id" value="hero" placeholder="hero">
+            <small>Se usará en <code>data-lp-form-id</code>. Si pegas varios formularios, se numerarán.</small>
+          </label>
+
+          <label class="field">
+            <span>HTML del formulario</span>
+            <textarea id="raw-form-html" rows="18" placeholder="&lt;form id=&quot;leadForm&quot;&gt;...&lt;/form&gt;" required></textarea>
+          </label>
+
+          <div class="actions">
+            <button class="button button-primary" type="submit">Preparar formulario</button>
+            <button class="button button-ghost" id="load-form-example" type="button">Cargar ejemplo</button>
+            <button class="button button-ghost" id="clear-form-helper" type="button">Limpiar</button>
+          </div>
+        </form>
+
+        <section class="card helper-result" aria-live="polite">
+          <div class="section-heading result-heading">
+            <div>
+              <p class="step">Resultado</p>
+              <h2>Formulario listo</h2>
+            </div>
+            <span id="helper-status" class="status-badge">Sin preparar</span>
+          </div>
+
+          <div id="helper-empty" class="empty-state helper-empty">
+            <div class="code-icon">&lt;/&gt;</div>
+            <h3>Pega tu formulario</h3>
+            <p>El HTML corregido aparecerá aquí.</p>
+          </div>
+
+          <div id="helper-output" hidden>
+            <div id="helper-summary" class="helper-summary"></div>
+            <div class="code-panel">
+              <div class="code-header">
+                <h3>HTML preparado</h3>
+                <button id="copy-prepared-form" class="text-button" type="button">Copiar formulario</button>
+              </div>
+              <pre><code id="prepared-form-code"></code></pre>
+            </div>
+          </div>
+        </section>
+      </div>
+    </section>
+
     <section id="instalacion" class="installation shell">
       <div class="section-heading">
-        <p class="step">03 · Instala</p>
+        <p class="step">04 · Instala</p>
         <h2>Solo tres pasos</h2>
       </div>
 
