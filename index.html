@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Genera un archivo JavaScript universal para capturar UTMs, enviar formularios a un webhook y disparar un evento en Google Tag Manager.">
+  <title>LP Tracker Generator</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#inicio" aria-label="LP Tracker Generator">
+      <span class="brand-mark">LP</span>
+      <span>Tracker Generator</span>
+    </a>
+    <a class="topbar-link" href="#instalacion">Cómo instalar</a>
+  </header>
+
+  <main id="inicio">
+    <section class="hero shell">
+      <div>
+        <p class="eyebrow">Generador universal para landing pages</p>
+        <h1>Genera el JS de tracking y úsalo en cualquier landing.</h1>
+        <p class="hero-copy">
+          Captura UTMs, envía los campos del formulario a tu webhook y dispara un evento en Google Tag Manager.
+          Puedes copiar el código o descargar el archivo listo para implementar.
+        </p>
+      </div>
+      <div class="hero-points" aria-label="Funciones incluidas">
+        <span>UTMs en localStorage</span>
+        <span>Webhook universal</span>
+        <span>Thank You opcional</span>
+        <span>Evento para GTM</span>
+      </div>
+    </section>
+
+    <section class="workspace shell">
+      <form id="builder-form" class="card config-card">
+        <div class="section-heading">
+          <p class="step">01 · Configura</p>
+          <h2>Datos del archivo</h2>
+        </div>
+
+        <label class="field">
+          <span>Webhook</span>
+          <input id="webhook-url" name="webhookUrl" type="url" placeholder="https://hooks.zapier.com/hooks/catch/..." required>
+          <small>Todos los formularios usarán este webhook, salvo que uno tenga <code>data-lp-webhook</code>.</small>
+        </label>
+
+        <div class="field-grid">
+          <label class="field">
+            <span>Selector de formularios</span>
+            <input id="form-selector" name="formSelector" value="form.lead-form" required>
+            <small>La opción recomendada es <code>form.lead-form</code>.</small>
+          </label>
+
+          <label class="field">
+            <span>Nombre del evento GTM</span>
+            <input id="event-name" name="eventName" value="lp_lead_submit" required>
+            <small>Se dispara al despachar el formulario al webhook.</small>
+          </label>
+        </div>
+
+        <div class="field-grid">
+          <label class="field">
+            <span>Después del envío</span>
+            <select id="redirect-mode" name="redirectMode">
+              <option value="none">No redirigir</option>
+              <option value="thankyou">Ir a una Thank You Page</option>
+            </select>
+          </label>
+
+          <label class="field" id="redirect-field" hidden>
+            <span>URL de Thank You Page</span>
+            <input id="redirect-url" name="redirectUrl" placeholder="thankyou.html">
+            <small>Puede ser una ruta relativa o una URL completa.</small>
+          </label>
+        </div>
+
+        <label class="field short-field">
+          <span>Nombre del archivo</span>
+          <input id="file-name" name="fileName" value="lp-tracker.js" required>
+        </label>
+
+        <div class="actions">
+          <button class="button button-primary" type="submit">Generar JS</button>
+          <button class="button button-ghost" id="reset-button" type="button">Limpiar</button>
+        </div>
+      </form>
+
+      <section class="card result-card" aria-live="polite">
+        <div class="section-heading result-heading">
+          <div>
+            <p class="step">02 · Entregable</p>
+            <h2>Tu archivo JavaScript</h2>
+          </div>
+          <span id="status-badge" class="status-badge">Sin generar</span>
+        </div>
+
+        <div id="empty-state" class="empty-state">
+          <div class="code-icon">{ }</div>
+          <h3>Configura y genera tu archivo</h3>
+          <p>El código aparecerá aquí listo para copiar o descargar.</p>
+        </div>
+
+        <div id="result" hidden>
+          <div class="file-summary">
+            <div>
+              <span>Archivo generado</span>
+              <strong id="generated-file-name">lp-tracker.js</strong>
+              <small id="generated-file-size">0 KB</small>
+            </div>
+            <div class="file-actions">
+              <button id="copy-js-button" class="button button-ghost" type="button">Copiar JS</button>
+              <button id="download-button" class="button button-primary" type="button">Descargar JS</button>
+            </div>
+          </div>
+
+          <div class="code-panel">
+            <div class="code-header">
+              <h3>Vista previa</h3>
+              <button class="text-button" data-copy-target="generated-code" type="button">Copiar código</button>
+            </div>
+            <pre><code id="generated-code"></code></pre>
+          </div>
+
+          <div class="event-preview">
+            <span>Evento enviado a Google Tag Manager</span>
+            <code id="event-preview">lp_lead_submit</code>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <section id="instalacion" class="installation shell">
+      <div class="section-heading">
+        <p class="step">03 · Instala</p>
+        <h2>Solo tres pasos</h2>
+      </div>
+
+      <div class="install-grid">
+        <article class="install-card">
+          <span class="number">1</span>
+          <h3>Guarda el archivo</h3>
+          <p>Coloca el JS descargado en tu landing, por ejemplo:</p>
+          <div class="mini-code"><code>assets/js/lp-tracker.js</code></div>
+        </article>
+
+        <article class="install-card">
+          <span class="number">2</span>
+          <h3>Impórtalo en el head</h3>
+          <div class="snippet-title">
+            <span>Antes de <code>&lt;/head&gt;</code></span>
+            <button class="text-button" data-copy-target="script-snippet" type="button">Copiar</button>
+          </div>
+          <pre class="small-pre"><code id="script-snippet">&lt;script src="./assets/js/lp-tracker.js" defer&gt;&lt;/script&gt;</code></pre>
+        </article>
+
+        <article class="install-card">
+          <span class="number">3</span>
+          <h3>Marca tus formularios</h3>
+          <div class="snippet-title">
+            <span>Agrega la clase configurada</span>
+            <button class="text-button" data-copy-target="form-snippet" type="button">Copiar</button>
+          </div>
+          <pre class="small-pre"><code id="form-snippet">&lt;form class="lead-form" data-lp-form-id="hero"&gt;</code></pre>
+          <p class="note">Todos los campos que quieras enviar deben tener atributo <code>name</code>.</p>
+        </article>
+      </div>
+
+      <div class="optional-box">
+        <div>
+          <h3>Opciones por formulario</h3>
+          <p>Puedes usar otro webhook o una Thank You Page distinta sin volver a generar el archivo.</p>
+        </div>
+        <div class="snippet-title">
+          <span>Ejemplo</span>
+          <button class="text-button" data-copy-target="override-snippet" type="button">Copiar</button>
+        </div>
+        <pre class="small-pre"><code id="override-snippet">&lt;form
+  class="lead-form"
+  data-lp-form-id="contacto"
+  data-lp-webhook="https://hooks.zapier.com/hooks/catch/..."
+  data-lp-redirect="thankyou.html"
+&gt;</code></pre>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer shell">
+    <span>LP Tracker Generator</span>
+    <span>HTML · CSS · JavaScript</span>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="./app.js"></script>
+</body>
+</html>
