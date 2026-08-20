@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Automatiza la instalación de LP Tracker en una landing HTML completa desde GitHub, ZIP o carpeta local.">
+  <title>Automatizar landing · LP Tracker Generator</title>
+  <link rel="stylesheet" href="./styles.css">
+  <link rel="stylesheet" href="./auto-setup.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./index.html" aria-label="Volver a LP Tracker Generator">
+      <span class="brand-mark">LP</span>
+      <span>Tracker Generator</span>
+    </a>
+    <nav class="topbar-nav">
+      <a class="topbar-link" href="./index.html">Generador manual</a>
+      <a class="topbar-link" href="#automatizar">Automatizar landing</a>
+    </nav>
+  </header>
+
+  <main id="automatizar">
+    <section class="hero shell auto-hero">
+      <div>
+        <p class="eyebrow">Instalación automática para landing pages</p>
+        <h1>Sube el proyecto y recibe la landing lista para publicar.</h1>
+        <p class="hero-copy">
+          Carga un ZIP, selecciona una carpeta o pega un repositorio público de GitHub.
+          La herramienta prepara los formularios, genera <code>lp-tracker.js</code>, lo inserta en cada HTML y devuelve un ZIP nuevo.
+        </p>
+      </div>
+      <div class="hero-points" aria-label="Funciones incluidas">
+        <span>GitHub público</span>
+        <span>ZIP o carpeta</span>
+        <span>Forms automáticos</span>
+        <span>ZIP final</span>
+      </div>
+    </section>
+
+    <section class="auto-layout shell">
+      <form id="auto-config-form" class="card auto-config-card">
+        <div class="section-heading">
+          <div>
+            <p class="step">01 · Configura</p>
+            <h2>Tracking de la landing</h2>
+          </div>
+          <span class="auto-badge">HTML estático · V1</span>
+        </div>
+
+        <label class="field">
+          <span>Webhook</span>
+          <input id="auto-webhook" name="webhookUrl" type="url" placeholder="https://hooks.zapier.com/hooks/catch/..." required>
+          <small>La URL quedará dentro del JavaScript generado, igual que en el generador actual.</small>
+        </label>
+
+        <div class="field-grid">
+          <label class="field">
+            <span>Evento de Google Tag Manager</span>
+            <input id="auto-event-name" name="eventName" value="lp_lead_submit" required>
+          </label>
+          <label class="field">
+            <span>Nombre del archivo</span>
+            <input id="auto-file-name" name="fileName" value="lp-tracker.js" required>
+          </label>
+        </div>
+
+        <div class="field-grid">
+          <label class="field">
+            <span>Después del envío</span>
+            <select id="auto-redirect-mode" name="redirectMode">
+              <option value="none">No redirigir</option>
+              <option value="thankyou">Ir a una Thank You Page</option>
+            </select>
+          </label>
+          <label class="field" id="auto-redirect-field" hidden>
+            <span>URL / ruta de Thank You</span>
+            <input id="auto-redirect-url" name="redirectUrl" placeholder="thankyou.html">
+          </label>
+        </div>
+
+        <div class="auto-info-box">
+          <strong>Qué va a modificar</strong>
+          <p>Todos los <code>&lt;form&gt;</code> encontrados en archivos <code>.html</code> recibirán <code>lead-form</code>, <code>data-lp-form-id</code> y los <code>name</code> faltantes.</p>
+        </div>
+      </form>
+
+      <section class="card source-card" aria-labelledby="source-title">
+        <div class="section-heading">
+          <div>
+            <p class="step">02 · Proyecto</p>
+            <h2 id="source-title">Elige de dónde cargarlo</h2>
+          </div>
+          <span id="source-status" class="status-badge">Sin proyecto</span>
+        </div>
+
+        <div class="source-block">
+          <label class="field">
+            <span>Repositorio público de GitHub</span>
+            <div class="inline-action">
+              <input id="github-url" type="url" placeholder="https://github.com/usuario/repositorio">
+              <button id="load-github" class="button button-ghost" type="button">Usar GitHub</button>
+            </div>
+            <small>No necesita token para repositorios públicos. Si GitHub bloquea la descarga, usa el ZIP como alternativa.</small>
+          </label>
+        </div>
+
+        <div class="source-divider"><span>o</span></div>
+
+        <div id="drop-zone" class="drop-zone" tabindex="0" role="button" aria-label="Arrastra un archivo ZIP o haz clic para seleccionarlo">
+          <div class="drop-icon">↓</div>
+          <strong>Arrastra aquí el ZIP de la landing</strong>
+          <span>o selecciónalo desde tu computadora</span>
+          <button id="choose-zip" class="button button-ghost" type="button">Seleccionar ZIP</button>
+        </div>
+
+        <input id="zip-input" class="visually-hidden" type="file" accept=".zip,application/zip">
+        <input id="folder-input" class="visually-hidden" type="file" webkitdirectory directory multiple>
+
+        <button id="choose-folder" class="button button-ghost folder-button" type="button">Seleccionar carpeta completa</button>
+
+        <div id="project-summary" class="project-summary" hidden>
+          <div>
+            <span>Proyecto cargado</span>
+            <strong id="project-name">—</strong>
+          </div>
+          <div class="project-metrics">
+            <span><strong id="project-files">0</strong> archivos</span>
+            <span><strong id="project-html">0</strong> HTML</span>
+          </div>
+        </div>
+
+        <div class="actions auto-actions">
+          <button id="process-project" class="button button-primary" type="button" disabled>Preparar proyecto</button>
+          <button id="clear-project" class="button button-ghost" type="button" disabled>Quitar proyecto</button>
+        </div>
+      </section>
+    </section>
+
+    <section class="shell auto-result-section">
+      <section class="card auto-result-card" aria-live="polite">
+        <div class="section-heading result-heading">
+          <div>
+            <p class="step">03 · Resultado</p>
+            <h2>Proyecto preparado</h2>
+          </div>
+          <span id="process-status" class="status-badge">Pendiente</span>
+        </div>
+
+        <div id="process-empty" class="empty-state">
+          <div class="code-icon">ZIP</div>
+          <h3>Carga un proyecto para comenzar</h3>
+          <p>El resumen de cambios aparecerá aquí antes de descargar el resultado.</p>
+        </div>
+
+        <div id="process-result" hidden>
+          <div class="result-metrics">
+            <article>
+              <span>HTML procesados</span>
+              <strong id="result-html">0</strong>
+            </article>
+            <article>
+              <span>Forms preparados</span>
+              <strong id="result-forms">0</strong>
+            </article>
+            <article>
+              <span>Names agregados</span>
+              <strong id="result-names">0</strong>
+            </article>
+            <article>
+              <span>Tracker</span>
+              <strong id="result-tracker">—</strong>
+            </article>
+          </div>
+
+          <div id="framework-warning" class="warning-box" hidden></div>
+
+          <div class="changes-box">
+            <div class="snippet-title">
+              <span>Archivos modificados</span>
+              <span id="changed-count">0 archivos</span>
+            </div>
+            <ul id="changed-files" class="changed-files"></ul>
+          </div>
+
+          <div class="actions result-actions">
+            <button id="download-project" class="button button-primary" type="button">Descargar ZIP preparado</button>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <footer class="footer shell">
+    <span>LP Tracker Generator · Auto Setup V1</span>
+    <span>Procesamiento local en el navegador</span>
+  </footer>
+
+  <div id="auto-toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="./auto-setup.js"></script>
+</body>
+</html>
